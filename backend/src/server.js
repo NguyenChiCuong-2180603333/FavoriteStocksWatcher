@@ -13,17 +13,28 @@ const app = express();
 const port = process.env.PORT || 3000; 
 const dbURI = process.env.MONGODB_URI;
 
-mongoose.connect(dbURI)
-  .then(() => {
+// Tách phần kết nối DB và khởi động server để tránh vấn đề khi chạy test
+const connectDB = async () => {
+  try {
+    await mongoose.connect(dbURI);
     console.log('Đã kết nối thành công tới MongoDB!');
-    // Chỉ khởi động server sau khi kết nối DB thành công
-    app.listen(port, () => {
-      console.log(`Express server đang lắng nghe tại http://localhost:${port}`);
-    });
-  })
-  .catch((err) => {
+    return true;
+  } catch (err) {
     console.error('Lỗi kết nối MongoDB:', err);
+    return false;
+  }
+};
+
+// Khởi động server chỉ khi không trong môi trường test
+if (process.env.NODE_ENV !== 'test') {
+  connectDB().then(connected => {
+    if (connected) {
+      app.listen(port, () => {
+        console.log(`Express server đang lắng nghe tại http://localhost:${port}`);
+      });
+    }
   });
+}
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -46,3 +57,6 @@ mongoose.connection.on('error', err => {
 mongoose.connection.on('disconnected', () => {
   console.log('Đã ngắt kết nối MongoDB.');
 });
+
+// Thêm dòng này để export app
+export default app;
