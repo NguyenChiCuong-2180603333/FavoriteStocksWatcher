@@ -32,11 +32,13 @@ const DashboardPage = () => {
 
   const fetchFavorites = useCallback(async (isRefreshFromList = false) => {
     if (!user) return;
-    if (!isRefreshFromList) setIsLoading(true);
+    if (!isRefreshFromList) {
+        setIsLoading(true);
+    }
     try {
       const data = await StockService.getFavoriteStocksWithDetails();
       setFavoriteStocksDetails(data || []);
-      if (data) setError('');
+      if (data) setError(''); 
     } catch (err) {
       console.error('Lỗi khi tải danh sách cổ phiếu yêu thích:', err);
       setError(err.message || 'Không thể tải danh sách cổ phiếu yêu thích.');
@@ -58,7 +60,7 @@ const DashboardPage = () => {
   const handleStockRemoved = async (symbolToRemove) => {
     try {
       await StockService.removeFavoriteStock(symbolToRemove);
-      fetchFavorites();
+      fetchFavorites(); 
     } catch (err) {
       console.error(`Lỗi khi xóa mã ${symbolToRemove}:`, err);
       setError(err.message || `Không thể xóa mã ${symbolToRemove}.`);
@@ -66,7 +68,7 @@ const DashboardPage = () => {
   };
 
   const handleRefreshPrices = useCallback(() => {
-    fetchFavorites(true);
+    fetchFavorites(true); 
   }, [fetchFavorites]);
 
   const handleOpenShareDialog = () => {
@@ -113,7 +115,7 @@ const DashboardPage = () => {
         <Typography variant="h4" component="h1"> 
           Bảng điều khiển
         </Typography>
-        {favoriteStocksDetails && favoriteStocksDetails.length > 0 && ( 
+        {favoriteStocksDetails && favoriteStocksDetails.length > 0 && !error && ( 
             <Button
                 variant="outlined"
                 color="primary"
@@ -151,17 +153,23 @@ const DashboardPage = () => {
       </Dialog>
 
       <Grid container spacing={theme.spacing(3.5)}> 
-        <Grid item xs={12} md={5} lg={4}>
+        <Grid xs={12} md={5} lg={4}> 
           <Paper sx={{ p: theme.spacing(3), height: '100%' }}>
             <AddStockForm onStockAdded={handleStockAdded} />
           </Paper>
         </Grid>
-        <Grid item xs={12} md={7} lg={8}>
+        <Grid xs={12} md={7} lg={8}> 
+            {error && !isLoading && favoriteStocksDetails.length === 0 && (
+              <Paper sx={{p: theme.spacing(3), textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed'}}>
+                <Alert severity="error" sx={{width: '100%'}}>{error}</Alert>
+              </Paper>
+            )}
+
             {error && !isLoading && favoriteStocksDetails.length > 0 && ( 
                 <Alert severity="error" sx={{ mb: theme.spacing(2) }}>{error}</Alert>
             )}
             
-            {isLoading && favoriteStocksDetails.length === 0 && (
+            {isLoading && favoriteStocksDetails.length === 0 && !error && (
               <Paper sx={{p: theme.spacing(3), textAlign: 'center', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed'}}>
                 <CircularProgress />
                 <Typography sx={{ml: 2}} color="text.secondary">Đang tải dữ liệu...</Typography>
