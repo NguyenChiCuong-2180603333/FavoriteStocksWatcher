@@ -14,10 +14,13 @@ const StockService = {
   addFavoriteStock: async (symbol) => {
     try {
       const response = await api.post('/stocks/favorites', { symbol });
-      return response.data;
+      return response.data; 
     } catch (error) {
-      console.error(`Lỗi khi thêm mã ${symbol}:`, error);
-      throw error.response?.data || error;
+      if (error.response && error.response.data && error.response.data.message) {
+        throw error.response.data; // err trong component sẽ là { message: "..." }
+      }
+      console.error(`Lỗi khi thêm mã ${symbol}:`, error.message);
+      throw new Error(error.message || `Không thể thêm mã ${symbol}. Vui lòng thử lại.`);
     }
   },
 
@@ -26,8 +29,11 @@ const StockService = {
       const response = await api.delete(`/stocks/favorites/${symbol}`);
       return response.data;
     } catch (error) {
-      console.error(`Lỗi khi xóa mã ${symbol}:`, error);
-      throw error.response?.data || error;
+      console.error(`Lỗi khi xóa mã ${symbol}:`, error.response?.data || error);
+      if (error.response && error.response.data && error.response.data.message) {
+        throw error.response.data;
+      }
+      throw new Error(error.message || `Không thể xóa mã ${symbol}.`);
     }
   },
 
@@ -37,11 +43,14 @@ const StockService = {
       const response = await api.get(`/stocks/prices?symbols=${symbolsString}`);
       return response.data;
     } catch (error) {
-      console.error(`Lỗi khi lấy giá công khai cho các mã ${symbolsString}:`, error);
-      throw error.response?.data || error; 
+      console.error(`Lỗi khi lấy giá công khai cho các mã ${symbolsString}:`, error.response?.data || error);
+       if (error.response && error.response.data && error.response.data.message) {
+        throw error.response.data;
+      }
+      throw new Error(error.message || `Không thể lấy giá công khai cho mã ${symbolsString}.`);
     }
   },
-
 };
+
 
 export default StockService;

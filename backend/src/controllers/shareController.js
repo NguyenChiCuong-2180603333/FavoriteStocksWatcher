@@ -1,60 +1,93 @@
 import Share from '../models/Share.js';
 import User from '../models/User.js'; 
 
+const isValidEmailFormat = (email) => {
+  if (!email) return false;
+  const emailRegex = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return emailRegex.test(email);
+};
 
 export const shareMyFavorites = async (req, res) => {
-  const { recipientEmail } = req.body;
-  const sharerId = req.user._id; 
-
-  if (!recipientEmail || typeof recipientEmail !== 'string' || recipientEmail.trim() === '') {
-    return res.status(400).json({ message: 'Vui lòng cung cấp email người nhận hợp lệ.' });
-  }
-
-  const normalizedRecipientEmail = recipientEmail.trim().toLowerCase();
-
-  if (req.user.email === normalizedRecipientEmail) {
-    return res.status(400).json({ message: 'Bạn không thể tự chia sẻ cho chính mình.' });
-  }
-
   try {
-    // Kiểm tra xem người nhận có phải là user đã đăng ký không
-     const recipientUser = await User.findOne({ email: normalizedRecipientEmail });
+    const sharerUserId = req.user._id;
+    const { recipientEmail } = req.body;
 
-    // Kiểm tra xem đã chia sẻ cho email này chưa
+    if (!recipientEmail || typeof recipientEmail !== 'string' || recipientEmail.trim() === '') {
+      return res.status(400).json({ message: 'Vui lòng cung cấp email người nhận.' });
+    }
+
+    const trimmedEmail = recipientEmail.trim().toLowerCase();
+
+    if (trimmedEmail.length > 256) {
+      return res.status(400).json({ message: 'Email người nhận không được vượt quá 256 ký tự.' });
+    }
+
+    if (!isValidEmailFormat(trimmedEmail)) {
+      return res.status(400).json({ message: 'Địa chỉ email người nhận không hợp lệ.' });
+    }
+
+    const sharerUser = await User.findById(sharerUserId).select('favoriteStocks email');
+    if (!sharerUser) {
+      return res.status(404).json({ message: 'Không tìm thấy thông tin người chia sẻ.' });
+    }
+
+    if (sharerUser.email === trimmedEmail) {
+      return res.status(400).json({ message: 'Bạn không thể chia sẻ danh sách cho chính mình.' });
+    }
+
+    const recipientUser = await User.findOne({ email: trimmedEmail }).select('_id email'); 
+    if (!recipientUser) {
+      return res.status(404).json({ message: `Người dùng với email '${trimmedEmail}' không tồn tại trong hệ thống.` });
+    }
+
+    if (!sharerUser.favoriteStocks || sharerUser.favoriteStocks.length === 0) {
+      return res.status(400).json({ message: 'Danh sách cổ phiếu yêu thích của bạn đang trống. Không thể chia sẻ.' });
+    }
+
     const existingShare = await Share.findOne({
-      sharer: sharerId,
-      recipientEmail: normalizedRecipientEmail,
+      sharer: sharerUser._id,
+      recipientUser: recipientUser._id,
+      status: 'active',
     });
 
     if (existingShare) {
-      return res.status(400).json({ message: `Bạn đã chia sẻ danh sách này với ${normalizedRecipientEmail} rồi.` });
+      return res.status(409).json({
+        message: `Bạn đã chia sẻ danh sách của mình với ${recipientUser.email} rồi.`,
+      });
     }
 
-    const newShare = await Share.create({
-      sharer: sharerId,
-      recipientEmail: normalizedRecipientEmail,
-      recipientUser: recipientUser ? recipientUser._id : null, 
+    const newShare = new Share({
+      sharer: sharerUser._id,
+      recipientUser: recipientUser._id,
+      sharedStocks: [...sharerUser.favoriteStocks],
+      status: 'active',
     });
+
+    await newShare.save();
 
     res.status(201).json({
-      message: `Đã chia sẻ danh sách yêu thích với ${normalizedRecipientEmail}.`,
-      share: newShare,
+      message: `Đã chia sẻ thành công danh sách cổ phiếu yêu thích của bạn với ${recipientUser.email}.`,
+      shareDetails: newShare, 
     });
+
   } catch (error) {
-    console.error('Lỗi khi chia sẻ danh sách:', error);
-    if (error.code === 11000) { // Lỗi duplicate key từ unique index
-        return res.status(400).json({ message: `Lỗi: Bạn đã chia sẻ danh sách này với ${normalizedRecipientEmail} rồi (từ index).` });
+    console.error('Lỗi khi chia sẻ danh sách cổ phiếu:', error);
+    if (error.name === 'ValidationError') { 
+        return res.status(400).json({ message: error.message });
     }
-    res.status(500).json({ message: 'Lỗi máy chủ nội bộ khi chia sẻ danh sách.' });
+    if (error.code === 11000) { 
+        return res.status(409).json({ message: `Bạn đã chia sẻ danh sách với người dùng này rồi và lượt chia sẻ đó đang hoạt động.` });
+    }
+    res.status(500).json({ message: 'Lỗi máy chủ nội bộ khi thực hiện chia sẻ.' });
   }
 };
 
 
 export const getListsSharedWithMe = async (req, res) => {
-  const myEmail = req.user.email; 
+  const myUserId = req.user._id;
 
   try {
-    const shares = await Share.find({ recipientEmail: myEmail })
+    const shares = await Share.find({ recipientUser: myUserId, status: 'active' }) 
       .populate('sharer', 'name username email'); 
 
     if (!shares || shares.length === 0) {
@@ -65,15 +98,16 @@ export const getListsSharedWithMe = async (req, res) => {
     const detailedSharedLists = await Promise.all(
       shares.map(async (share) => {
         if (!share.sharer) { 
+            console.warn(`Share document ${share._id} thiếu thông tin sharer.`);
             return {
-                sharedBy: { name: 'Người dùng không xác định', username: 'N/A', email: 'N/A' },
+                sharerInfo: { name: 'Người dùng không xác định', username: 'N/A', email: 'N/A' },
                 favoriteStocks: [],
                 sharedAt: share.createdAt,
                 shareId: share._id
             };
         }
     
-        const sharerUserDoc = await User.findById(share.sharer._id);
+        //const sharerUserDoc = await User.findById(share.sharer._id);
         return {
           shareId: share._id, 
           sharerInfo: {
@@ -82,7 +116,7 @@ export const getListsSharedWithMe = async (req, res) => {
             username: share.sharer.username,
             email: share.sharer.email,
           },
-          favoriteStocks: sharerUserDoc ? sharerUserDoc.favoriteStocks : [],
+          favoriteStocks: share.sharedStocks, 
           sharedAt: share.createdAt,
         };
       })
@@ -98,15 +132,40 @@ export const getListsSharedWithMe = async (req, res) => {
 
 export const getMySharedInstances = async (req, res) => {
   const sharerId = req.user._id;
-
   try {
-    const myShares = await Share.find({ sharer: sharerId })
-                                .select('recipientEmail createdAt'); // Chỉ lấy email người nhận và thời gian chia sẻ
+    const mySharesRaw = await Share.find({ sharer: sharerId, status: 'active' }) // Lấy các chia sẻ đang active
+                                  .populate('recipientUser', 'email name username') // Populate thông tin từ User model
+                                  .select('recipientUser createdAt sharedStocks status') // Chọn các trường cần thiết
+                                  .sort({ createdAt: -1 }); // Sắp xếp mới nhất lên đầu (tùy chọn)
+
+    // Chuyển đổi dữ liệu để dễ sử dụng ở frontend
+    const myShares = mySharesRaw.map(share => {
+      let recipientDisplayEmail = 'N/A (Thông tin không có)';
+      let recipientDisplayName = null;
+
+      if (share.recipientUser) {
+        recipientDisplayEmail = share.recipientUser.email;
+        recipientDisplayName = share.recipientUser.name || share.recipientUser.username;
+      } else if (share.recipientEmail) { 
+        // Fallback nếu vì lý do nào đó recipientEmail cũ vẫn còn trong một số bản ghi
+        // (Mặc dù theo model mới thì trường này không được sử dụng chính thức nữa)
+        recipientDisplayEmail = share.recipientEmail;
+      }
+
+      return {
+        _id: share._id,
+        recipientEmail: recipientDisplayEmail,
+        recipientName: recipientDisplayName, // Bạn có thể dùng trường này ở frontend nếu muốn
+        createdAt: share.createdAt,
+        sharedStocksCount: share.sharedStocks ? share.sharedStocks.length : 0,
+        status: share.status
+      };
+    });
 
     res.json(myShares);
   } catch (error) {
     console.error('Lỗi khi lấy các lượt chia sẻ của tôi:', error);
-    res.status(500).json({ message: 'Lỗi máy chủ nội bộ.' });
+    res.status(500).json({ message: 'Lỗi máy chủ nội bộ khi lấy danh sách đã chia sẻ.' });
   }
 };
 

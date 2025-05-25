@@ -2,13 +2,15 @@ import api from './api';
 
 const ShareService = {
 
-  shareMyFavorites: async (recipientEmail) => {
+ shareMyFavorites: async (recipientEmail) => {
     try {
       const response = await api.post('/shares', { recipientEmail });
-      return response.data;
+      return response.data; 
     } catch (error) {
-      console.error('Lỗi khi chia sẻ danh sách:', error);
-      throw error.response?.data || error;
+      if (error.response && error.response.data && error.response.data.message) {
+        throw error.response.data;
+      }
+      throw new Error(error.message || 'Không thể chia sẻ danh sách. Vui lòng thử lại.');
     }
   },
 

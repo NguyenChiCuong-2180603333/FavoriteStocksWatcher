@@ -30,7 +30,8 @@ const userSchema = new mongoose.Schema(
       match: [ 
         /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/,
         'Vui lòng cung cấp một địa chỉ email hợp lệ.'
-      ]
+      ],
+      maxlength: [256, 'Email không được vượt quá 256 ký tự.']
     },
     password: {
       type: String,

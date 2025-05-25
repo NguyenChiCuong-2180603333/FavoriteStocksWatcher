@@ -15,9 +15,10 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Button, // Mặc dù Button không dùng trực tiếp ở đây, nhưng có thể cần cho các component con hoặc tương lai
+  Button, 
   Skeleton,
-  Stack
+  Stack,
+  Tooltip
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PersonIcon from '@mui/icons-material/Person';
@@ -68,7 +69,7 @@ const SharedListItem = ({ share }) => {
 
   return (
     <Paper elevation={0} sx={{ mb: theme.spacing(2), border: `1px solid ${theme.palette.divider}` }}>
-      <Accordion expanded={isExpanded} onChange={handleAccordionChange} sx={{ '&.MuiAccordion-root': { borderRadius: theme.shape.borderRadius } }}>
+      <Accordion expanded={isExpanded} onChange={handleAccordionChange} >
         <AccordionSummary
           expandIcon={<ExpandMoreIcon />}
           aria-controls={`panel-${share.shareId}-content`}
@@ -78,9 +79,23 @@ const SharedListItem = ({ share }) => {
             <PersonIcon sx={{ mr: 1.5, color: 'primary.main' }} />
             <Typography sx={{ fontWeight: 'medium', flexGrow: 1 }}>
               Chia sẻ bởi: {share.sharerInfo.name || share.sharerInfo.username}
-              <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 0.5 }}>
+              <Tooltip title={share.sharerInfo.email || ''} placement="bottom-start">
+              <Typography
+                component="span"
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  ml: 0.5,
+                  display: 'inline-block',  
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxWidth: '150px', 
+                }}
+              >
                 ({share.sharerInfo.email})
               </Typography>
+            </Tooltip>
             </Typography>
             <Chip label={`${share.favoriteStocks.length} mã`} size="small" />
           </Box>

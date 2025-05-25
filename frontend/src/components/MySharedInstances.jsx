@@ -94,7 +94,7 @@ const MySharedInstances = () => {
   }
 
   return (
-    <Paper elevation={0} sx={{p:0}}> {/* Bỏ elevation của Paper con nếu cha đã có */}
+    <Paper elevation={0} sx={{p:0}}> 
       <List>
         {myShares.map((share) => (
           <React.Fragment key={share._id}>
@@ -108,15 +108,27 @@ const MySharedInstances = () => {
             >
               <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', mb: {xs: 1, sm: 0} }}>
                 <EmailIcon sx={{ mr: 1, color: 'action.active' }} />
+                <Tooltip title={share.recipientEmail || ''} placement="bottom-start">
                 <ListItemText
                   primary={share.recipientEmail}
+                  primaryTypographyProps={{
+                    sx: {
+                      whiteSpace: 'nowrap',     
+                      overflow: 'hidden',       
+                      textOverflow: 'ellipsis', 
+                      display: 'block',         
+                      minWidth: 0,              
+                      maxWidth: '200px',      
+                      }
+                   }}
                   secondary={
                     <>
                       <AccessTimeIcon fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
                       Đã chia sẻ lúc: {new Date(share.createdAt).toLocaleString()}
                     </>
                   }
-                />
+              />
+               </Tooltip> 
               </Box>
               <ListItemSecondaryAction sx={{ position: {xs: 'relative', sm: 'static'}, transform: {xs: 'translateY(0)', sm: 'none'}, right: {xs: 0, sm: 'auto'}, top: {xs:0, sm:'auto'}, mt: {xs: 1, sm: 0} }}>
                 <Tooltip title="Thu hồi chia sẻ">

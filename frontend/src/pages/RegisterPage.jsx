@@ -37,22 +37,59 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError(''); // Xóa lỗi cũ
     setLoading(true);
 
-    if (formData.password.length < 6) {
-        setError('Mật khẩu phải có ít nhất 6 ký tự.');
+    if (!formData.name.trim()) {
+      setError('Vui lòng nhập tên đầy đủ.');
+      setLoading(false);
+      return;
+    }
+    if (!formData.username.trim()) {
+      setError('Vui lòng nhập tên người dùng (username).');
+      setLoading(false);
+      return;
+    }
+    if (!formData.email.trim()) {
+      setError('Vui lòng nhập địa chỉ email.');
+      setLoading(false);
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+        setError('Địa chỉ email không hợp lệ.');
         setLoading(false);
         return;
     }
-   
+    if (!formData.password) {
+      setError('Vui lòng nhập mật khẩu.');
+      setLoading(false);
+      return;
+    }
+
+
+    if (formData.password.length < 6) {
+      setError('Mật khẩu phải có ít nhất 6 ký tự.');
+      setLoading(false);
+      return;
+    }
+
+
     try {
-      const userData = await AuthService.register(formData);
-      register(userData); 
-      navigate('/'); 
+      const { password, ...registerData } = formData;
+      const userData = await AuthService.register({
+        name: registerData.name,
+        username: registerData.username,
+        email: registerData.email,
+        password: formData.password, 
+      });
+
+      alert('Đăng ký thành công! Vui lòng đăng nhập.'); 
+      navigate('/login'); 
+
     } catch (err) {
       console.error('Lỗi đăng ký:', err);
-      setError(err.message || 'Đăng ký không thành công. Vui lòng thử lại.');
+      const message = err.response?.data?.message || err.message || 'Đăng ký không thành công. Vui lòng thử lại.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -132,6 +169,8 @@ const RegisterPage = () => {
               onChange={handleChange}
               disabled={loading}
             />
+            
+            
             <Button
               type="submit"
               fullWidth
