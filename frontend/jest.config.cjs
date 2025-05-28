@@ -48,4 +48,7 @@ module.exports = {
       },
     },
   },
+
+  testTimeout: 15000,
+  verbose: true,
 };

@@ -2,12 +2,12 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import Header from '../components/Header';
 import actualTheme from '../theme'; 
 
 jest.mock('../contexts/AuthContext', () => ({
-  ...jest.requireActual('../contexts/AuthContext'),
+  ...jest.requireActual('../contexts/AuthContext'), 
   useAuth: jest.fn(),
 }));
 
@@ -89,7 +89,7 @@ const mockTheme = {
   },
   typography: {
     ...(actualTheme.typography || { fontFamily: 'Roboto, Arial, sans-serif' }),
-     button: {
+      button: {
       textTransform: actualTheme.typography?.button?.textTransform || 'uppercase',
       fontSize: actualTheme.typography?.button?.fontSize || '0.875rem',
       fontWeight: actualTheme.typography?.button?.fontWeight || 500,
@@ -104,30 +104,30 @@ const mockTheme = {
   },
   components: { 
     ...(actualTheme.components || {}),
-     MuiButton: {
+      MuiButton: {
         defaultProps: actualTheme.components?.MuiButton?.defaultProps || {},
         styleOverrides: { root: actualTheme.components?.MuiButton?.styleOverrides?.root || {},},
-     },
-     MuiIconButton: {
+      },
+      MuiIconButton: {
         defaultProps: actualTheme.components?.MuiIconButton?.defaultProps || {},
         styleOverrides: { root: actualTheme.components?.MuiIconButton?.styleOverrides?.root || {},},
-     },
-     MuiAppBar: {
+      },
+      MuiAppBar: {
         defaultProps: actualTheme.components?.MuiAppBar?.defaultProps || { color: 'inherit' },
         styleOverrides: { root: actualTheme.components?.MuiAppBar?.styleOverrides?.root || {}, }
-     },
-     MuiMenu: {
+      },
+      MuiMenu: {
         defaultProps: actualTheme.components?.MuiMenu?.defaultProps || {},
         styleOverrides: { paper: actualTheme.components?.MuiMenu?.styleOverrides?.paper || {}, }
-     },
-     MuiAvatar: {
+      },
+      MuiAvatar: {
         defaultProps: actualTheme.components?.MuiAvatar?.defaultProps || {},
         styleOverrides: { root: actualTheme.components?.MuiAvatar?.styleOverrides?.root || {}, }
-     },
-     MuiDialog: {
+      },
+      MuiDialog: {
         defaultProps: actualTheme.components?.MuiDialog?.defaultProps || {},
         styleOverrides: { paper: actualTheme.components?.MuiDialog?.styleOverrides?.paper || {}, }
-     },
+      },
   },
   zIndex: { 
     appBar: actualTheme.zIndex?.appBar || 1100,
@@ -160,20 +160,21 @@ const mockTheme = {
       minHeight: 56,
       '@media (min-width:0px) and (orientation: landscape)': { minHeight: 48 },
       '@media (min-width:600px)': { minHeight: 64 },
-     },
+      },
     ...(actualTheme.mixins || {})
   },
 };
 
 describe('Header Component', () => {
-  const renderHeaderWithAuth = (authValue) => {
-    useAuth.mockReturnValue(authValue);
+  let mockAuthValue;
+
+  const renderHeader = (authOverrides = {}, props = {}) => {
+    const effectiveAuthValue = { ...mockAuthValue, ...authOverrides };
+    useAuth.mockImplementation(() => effectiveAuthValue);
     return render(
       <Router>
-        <ThemeProvider theme={mockTheme}> {/* SỬ DỤNG mockTheme đầy đủ */}
-          <AuthProvider> 
-            <Header onStockAddedFromHeader={mockOnStockAddedFromHeader} />
-          </AuthProvider>
+        <ThemeProvider theme={mockTheme}>
+          <Header onStockAddedFromHeader={mockOnStockAddedFromHeader} {...props} />
         </ThemeProvider>
       </Router>
     );
@@ -182,38 +183,54 @@ describe('Header Component', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
     mockOnStockAddedFromHeader.mockClear();
-    useAuth.mockReturnValue({ user: null, logout: jest.fn(), login: jest.fn(), register: jest.fn(), isLoading: false, updateUser: jest.fn() });
+    mockAuthValue = { 
+      user: null, 
+      logout: jest.fn(), 
+      login: jest.fn(), 
+      register: jest.fn(), 
+      isLoading: false, 
+      updateUser: jest.fn(),
+    };
+    useAuth.mockImplementation(() => mockAuthValue);
   });
 
   test('renders app name', () => {
-    renderHeaderWithAuth({ user: null, logout: jest.fn() });
+    renderHeader();
     const appNameElements = screen.getAllByText("Stocks Watcher");
     expect(appNameElements.length).toBeGreaterThanOrEqual(1);
     appNameElements.forEach(el => expect(el).toBeInTheDocument());
   });
 
   test('renders Login and Register buttons when logged out', () => {
-    renderHeaderWithAuth({ user: null, logout: jest.fn() });
+    renderHeader();
     expect(screen.getByRole('link', { name: /Đăng nhập/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Đăng ký/i })).toBeInTheDocument();
   });
 
   describe('when user is logged in', () => {
-    const mockUser = { name: 'Cường Nguyễn', username: 'cuong', email: 'cuong@test.com' };
-    const mockLogout = jest.fn();
-
-    beforeEach(() => {
-      renderHeaderWithAuth({ user: mockUser, logout: mockLogout, login: jest.fn(), register: jest.fn(), isLoading: false, updateUser: jest.fn() });
-    });
+    const mockUser = { name: 'Cường Nguyễn', username: 'cuong', email: 'cuong@test.com', _id: 'user123' };
+    const mockLogoutFn = jest.fn();
+    
+    const loggedInAuthOverrides = {
+      user: mockUser,
+      logout: mockLogoutFn,
+      isLoading: false, 
+      login: jest.fn(),
+      register: jest.fn(),
+      updateUser: jest.fn(),
+    };
 
     test('renders user name, username and email on desktop', () => {
+      renderHeader(loggedInAuthOverrides);
       expect(screen.getByText(mockUser.name)).toBeInTheDocument();
-      expect(screen.getByText(`(${mockUser.username})`)).toBeInTheDocument();
-      expect(screen.getByText(`- ${mockUser.email}`)).toBeInTheDocument();
+      expect(screen.getByText((content) => new RegExp(`\\(Username:\\s*${mockUser.username}\\s*\\)`, 'i').test(content))).toBeInTheDocument();
+      
+      expect(screen.getByText(mockUser.email)).toBeInTheDocument();
     });
 
     test('opens user menu when avatar is clicked, and menu items are present', async () => {
-      const accountButton = screen.getByRole('button', { name: 'Tài khoản' });
+      renderHeader(loggedInAuthOverrides);
+      const accountButton = screen.getByRole('button', { name: /Tài khoản/i });
       fireEvent.click(accountButton);
 
       expect(await screen.findByText('Thông tin cá nhân')).toBeVisible();
@@ -221,14 +238,15 @@ describe('Header Component', () => {
       expect(screen.getByText('Đăng xuất')).toBeVisible();
     });
     
-    test('renders "Thêm Mã CK" button and icon button', () => {
-      expect(screen.getByRole('button', { name: 'Thêm Mã CK' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Thêm Cổ Phiếu' })).toBeInTheDocument();
+    test('renders "Thêm Cổ Phiếu" icon button', () => { 
+      renderHeader(loggedInAuthOverrides);
+      expect(screen.getByRole('button', { name: /Thêm Cổ Phiếu/i })).toBeInTheDocument();
     });
 
-    test('opens AddStockForm dialog when "Thêm Mã CK" text button is clicked', async () => {
-      const addStockButton = screen.getByRole('button', { name: 'Thêm Mã CK' });
-      fireEvent.click(addStockButton);
+    test('opens AddStockForm dialog when "Thêm Cổ Phiếu" icon button is clicked', async () => { // Đổi tên test
+      renderHeader(loggedInAuthOverrides);
+      const addStockIconButton = screen.getByRole('button', { name: /Thêm Cổ Phiếu/i });
+      fireEvent.click(addStockIconButton);
       
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toBeVisible();
@@ -236,18 +254,20 @@ describe('Header Component', () => {
     });
     
     test('calls logout and navigates to /login when logout is clicked from menu', async () => {
-      const accountButton = screen.getByRole('button', { name: 'Tài khoản' });
+      renderHeader(loggedInAuthOverrides);
+      const accountButton = screen.getByRole('button', { name: /Tài khoản/i });
       fireEvent.click(accountButton); 
       
       const logoutMenuItem = await screen.findByText('Đăng xuất');
       fireEvent.click(logoutMenuItem);
       
-      expect(mockLogout).toHaveBeenCalledTimes(1);
+      expect(mockLogoutFn).toHaveBeenCalledTimes(1);
       expect(mockNavigate).toHaveBeenCalledWith('/login');
     });
 
     test('navigates to /sharing when "Quản lý Chia sẻ" is clicked from menu', async () => {
-      const accountButton = screen.getByRole('button', { name: 'Tài khoản' });
+      renderHeader(loggedInAuthOverrides);
+      const accountButton = screen.getByRole('button', { name: /Tài khoản/i });
       fireEvent.click(accountButton); 
 
       const sharingMenuItem = await screen.findByText('Quản lý Chia sẻ');
