@@ -13,6 +13,8 @@ import {
   Alert,
   CssBaseline,
   Avatar,
+  FormControlLabel, 
+  Checkbox,  
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -25,19 +27,26 @@ const RegisterPage = () => {
     username: '',
     email: '',
     password: '',
+    confirmPassword: '', 
+    agreedToTerms: false,
   });
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth(); 
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value,
+    });
   };
 
   const handleSubmit = async (e) => {
+    console.log('handleSubmit called by:', e.target);
     e.preventDefault();
-    setError(''); // Xóa lỗi cũ
+    setError(''); 
     setLoading(true);
 
     if (!formData.name.trim()) {
@@ -73,27 +82,43 @@ const RegisterPage = () => {
       return;
     }
 
+    if (formData.password !== formData.confirmPassword) {
+      setError('Mật khẩu và mật khẩu xác nhận không khớp.');
+      setLoading(false);
+      return;
+    }
+    if (!formData.agreedToTerms) {
+      setError('Bạn phải đồng ý với các điều khoản dịch vụ để đăng ký.');
+      setLoading(false);
+      return;
+    }
 
-    try {
-      const { password, ...registerData } = formData;
-      const userData = await AuthService.register({
-        name: registerData.name,
-        username: registerData.username,
-        email: registerData.email,
-        password: formData.password, 
+
+     try {
+      const response = await AuthService.register(formData);
+
+      setSuccessMessage(response.message || 'Đăng ký thành công! Vui lòng đăng nhập.');
+      setFormData({
+        name: '',
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        agreedToTerms: false,
       });
-
-      alert('Đăng ký thành công! Vui lòng đăng nhập.'); 
-      navigate('/login'); 
+      setTimeout(() => {
+        navigate('/login');
+      }, 3000); 
 
     } catch (err) {
       console.error('Lỗi đăng ký:', err);
-      const message = err.response?.data?.message || err.message || 'Đăng ký không thành công. Vui lòng thử lại.';
+      const message = err.message || 'Đăng ký không thành công. Vui lòng thử lại.';
       setError(message);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <ThemeProvider theme={defaultTheme}>
@@ -169,6 +194,46 @@ const RegisterPage = () => {
               onChange={handleChange}
               disabled={loading}
             />
+
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              name="confirmPassword"
+              label="Xác nhận Mật khẩu"
+              type="password"
+              id="confirmPassword"
+              autoComplete="new-password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              disabled={loading}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  value="agree"
+                  color="primary"
+                  name="agreedToTerms"
+                  checked={formData.agreedToTerms}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+             }
+              label={
+                <Typography variant="body2">
+                  Tôi đồng ý với{' '}
+                  <Link
+                    component={RouterLink}
+                    to="/terms"
+                    variant="body2"
+                    onClick={(e) => e.stopPropagation()} 
+                  >
+                    Điều khoản dịch vụ
+                </Link>
+                </Typography>
+              }
+              sx={{ mt: 1, mb: 1 }}
+            />
             
             
             <Button
@@ -176,7 +241,7 @@ const RegisterPage = () => {
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
-              disabled={loading}
+              disabled={loading || !!successMessage}
             >
               {loading ? <CircularProgress size={24} /> : 'Đăng Ký'}
             </Button>

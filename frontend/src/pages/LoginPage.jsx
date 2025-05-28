@@ -13,6 +13,8 @@ import {
   Alert,
   CssBaseline,
   Avatar,
+  FormControlLabel, 
+  Checkbox,  
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
@@ -23,6 +25,7 @@ const LoginPage = () => {
   const [formData, setFormData] = useState({
     emailOrUsername: '',
     password: '',
+    rememberMe: false,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +33,11 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value,
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -45,15 +52,16 @@ const LoginPage = () => {
     }
 
     try {
-      const userData = await AuthService.login({
+      await login({
         emailOrUsername: formData.emailOrUsername,
         password: formData.password,
+        rememberMe: formData.rememberMe,
       });
-      login(userData); 
-      navigate('/');
+      navigate('/'); 
     } catch (err) {
       console.error('Lỗi đăng nhập:', err);
-      setError(err.message || 'Đăng nhập không thành công. Vui lòng kiểm tra thông tin và thử lại.');
+      const message = err.message || 'Đăng nhập không thành công. Vui lòng kiểm tra thông tin và thử lại.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -108,6 +116,20 @@ const LoginPage = () => {
               value={formData.password}
               onChange={handleChange}
               disabled={loading}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  value="remember"
+                  color="primary"
+                  name="rememberMe"
+                  checked={formData.rememberMe}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              }
+              label="Ghi nhớ tôi"
+              sx={{ mt: 1, mb: 0 }} 
             />
             <Button
               type="submit"

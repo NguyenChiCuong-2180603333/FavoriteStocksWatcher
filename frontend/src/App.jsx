@@ -8,11 +8,9 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import SharedListsPage from './pages/SharedListsPage';
 import NotFoundPage from './pages/NotFoundPage';
-
 import Header from './components/Header';
-
+import TermsPage from './pages/TermsPage';
 import { CircularProgress, Box, Container } from '@mui/material';
-
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -84,6 +82,7 @@ function App() {
           />
           
           <Route path="*" element={<NotFoundPage />} />
+          <Route path="/terms" element={<TermsPage />} />
         </Routes>
       </Container>
       <ToastContainer

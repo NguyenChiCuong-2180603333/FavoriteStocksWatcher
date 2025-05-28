@@ -47,6 +47,11 @@ const userSchema = new mongoose.Schema(
       type: [String], 
       default: []     
     },
+    agreedToTerms: {
+    type: Boolean,
+    required: [true, 'Bạn phải đồng ý với các điều khoản dịch vụ'],
+    default: false, 
+  },
   },
   {
     timestamps: true
@@ -75,6 +80,10 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   } catch (error) {
     throw error; 
   }
+};
+
+userSchema.methods.matchPassword = async function (enteredPassword) {
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
 const User = mongoose.model('User', userSchema);
