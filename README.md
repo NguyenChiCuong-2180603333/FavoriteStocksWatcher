@@ -68,27 +68,19 @@ FavoriteStocksWatcher/
 ⚠️ **Yêu cầu môi trường**
 
 -   Node.js (khuyến nghị phiên bản LTS, ví dụ: 18.x hoặc 20.x)
--   npm (thường đi kèm với Node.js) hoặc yarn
+-   npm 
 -   MongoDB (đảm bảo server MongoDB đang chạy local hoặc bạn có URI kết nối)
 -   Git
 
 1️⃣ **Clone dự án**
-
-```bash
 git clone https://github.com/NguyenChiCuong-2180603333/FavoriteStocksWatcher.git
 cd FavoriteStocksWatcher
 
 🧩 Thiết lập Backend (Node.js + Express.js)
 
 Điều hướng vào thư mục backend:
-
-Bash
-
 cd backend
 Cài đặt các gói phụ thuộc:
-
-Bash
-
 npm install
 
 Thiết lập biến môi trường:
@@ -102,8 +94,6 @@ JWT_SECRET=your_very_strong_jwt_secret_key # Thay bằng một chuỗi bí mật
 FINNHUB_AP= your_key
 Chạy Backend server:
 
-Bash
-
 npm run dev
 Server backend sẽ chạy tại http://localhost:3000 (hoặc cổng bạn đặt trong .env).
 
@@ -111,14 +101,10 @@ Server backend sẽ chạy tại http://localhost:3000 (hoặc cổng bạn đ�
 
 Điều hướng vào thư mục frontend (từ thư mục gốc của dự án):
 
-Bash
-
 cd ../frontend
 # Hoặc nếu bạn đang ở thư mục gốc:
 # cd frontend
 Cài đặt các gói phụ thuộc:
-
-Bash
 
 npm install
 
@@ -134,4 +120,4 @@ Chạy Frontend application:
 Bash
 
 npm run dev
-Ứng dụng frontend sẽ chạy tại http://localhost:5173 (hoặc cổng được Vite chọn/cấu hình).
+Ứng dụng frontend sẽ chạy tại http://localhost:5173 .
