@@ -100,10 +100,8 @@ Server backend sẽ chạy tại http://localhost:3000 (hoặc cổng bạn đ�
 💻 Thiết lập Frontend (React + Vite)
 
 Điều hướng vào thư mục frontend (từ thư mục gốc của dự án):
-
 cd ../frontend
-# Hoặc nếu bạn đang ở thư mục gốc:
-# cd frontend
+
 Cài đặt các gói phụ thuộc:
 
 npm install
@@ -116,8 +114,6 @@ Tạo một tệp .env trong thư mục frontend/ và cấu hình biến sau:
 VITE_API_BASE_URL=http://localhost:3000/api
 
 Chạy Frontend application:
-
-Bash
 
 npm run dev
 Ứng dụng frontend sẽ chạy tại http://localhost:5173 .
